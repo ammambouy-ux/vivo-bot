@@ -10,21 +10,6 @@ import httpx
 from telegram import Update, ChatMember, BotCommand, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ChatMemberHandler, CallbackQueryHandler
 import games
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
-    def log_message(self, format, *args):
-        pass  # silence health check logs
-
-def run_health_server():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), HealthHandler)
-    server.serve_forever()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "ТВОЙ_ТОКЕН_СЮДА")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "ТВОЙ_GEMINI_КЛЮЧ_СЮДА")
@@ -677,12 +662,7 @@ def main():
         print("ERROR: BOT_TOKEN not set", flush=True)
         return
 
-    # Запускаем health-сервер первым делом
-    try:
-        threading.Thread(target=run_health_server, daemon=True).start()
-        logger.info("✅ Health server started")
-    except Exception as e:
-        logger.error(f"Health server failed: {e}")
+
 
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
@@ -700,7 +680,7 @@ def main():
     app.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, import_chat))
     app.add_handler(ChatMemberHandler(greet_group, ChatMemberHandler.MY_CHAT_MEMBER))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-    logger.info("🤖 Бот запущен на Render!")
+    logger.info("🤖 Бот запущен!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
