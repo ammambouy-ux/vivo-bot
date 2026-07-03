@@ -227,8 +227,8 @@ SEARCH_KEYWORDS = ["курс", "погода", "новости", "новост",
 
 async def ask_gemini(prompt: str, chat_id: str, status_msg=None) -> str:
     """Отправляет запрос в Gemini, с перебором моделей при лимитах."""
-    if GEMINI_API_KEY == "ТВОЙ_GEMINI_КЛЮЧ_СЮДА":
-        return "❌ API-ключ не указан."
+    if GEMINI_API_KEY == "ТВОЙ_GEMINI_КЛЮЧ_СЮДА" or not GEMINI_API_KEY:
+        return "❌ API-ключ не указан. Укажи GEMINI_API_KEY в переменных окружения."
 
     prompt_lower = prompt.lower()
     is_currency = any(kw in prompt_lower for kw in CURRENCY_KEYWORDS)
@@ -672,9 +672,17 @@ async def post_init(app: Application):
     ])
 
 def main():
-    if BOT_TOKEN == "ТВОЙ_ТОКЕН_СЮДА":
-        logger.error("❌ Токен бота не указан!")
+    if BOT_TOKEN == "ТВОЙ_ТОКЕН_СЮДА" or not BOT_TOKEN:
+        logger.error("❌ Токен бота не указан! Укажи BOT_TOKEN в переменных окружения.")
+        print("ERROR: BOT_TOKEN not set", flush=True)
         return
+
+    # Запускаем health-сервер первым делом
+    try:
+        threading.Thread(target=run_health_server, daemon=True).start()
+        logger.info("✅ Health server started")
+    except Exception as e:
+        logger.error(f"Health server failed: {e}")
 
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
@@ -692,7 +700,6 @@ def main():
     app.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, import_chat))
     app.add_handler(ChatMemberHandler(greet_group, ChatMemberHandler.MY_CHAT_MEMBER))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-    threading.Thread(target=run_health_server, daemon=True).start()
     logger.info("🤖 Бот запущен на Render!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
